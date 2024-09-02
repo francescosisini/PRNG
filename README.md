@@ -19,3 +19,88 @@ Questo progetto dimostra l'integrazione di un Generatore di Numeri Casuali Quant
 - Gestione delle Richieste API:
         Un cliente invia una richiesta HTTP GET all'endpoint API REST esposto da Google Cloud Functions.
         La Cloud Function si sottoscrive al topic Pub/Sub, recupera un numero casuale dalla sottoscrizione e lo restituisce nella risposta HTTP al cliente.
+```
+  
++-------------+            +-----------------+          +----------------+           +---------------------+
+|  Dispositivo|  --> USB --> | Raspberry Pi   |  --> Pub/Sub Topic  -->  | Cloud Function |  -->  Richiesta del Cliente |
+|     QRNG    |            +-----------------+          +----------------+           +---------------------+
+                                                             |
+                                                             |
+                                                     +-----------------+
+                                                     | Pub/Sub Sottosc. |
+                                                     +-----------------+
+```
+## Installazione
+Configurazione di Python su Ubuntu
+
+Se stai configurando il Raspberry Pi o un altro sistema Ubuntu, segui questi passaggi per installare Python e le dipendenze necessarie:
+
+    Aggiorna la lista dei pacchetti:
+```
+sudo apt update
+```
+Installa Python 3:
+
+```
+sudo apt install python3
+```
+Installa pip:
+```
+
+sudo apt install python3-pip
+```
+Verifica l'installazione:
+```
+
+python3 --version
+pip3 --version
+```
+Installa le dipendenze necessarie:
+```
+
+    pip3 install google-cloud-pubsub
+```
+## Configurazione del Raspberry Pi
+Installazione delle Dipendenze: Installa le librerie Python necessarie sul tuo Raspberry Pi (già spiegato nella sezione precedente).
+### Configurazione di Google Cloud:
+- Assicurati di avere un progetto Google Cloud configurato.
+- Crea un topic Pub/Sub e una corrispondente sottoscrizione nella Console Google Cloud.
+- Scarica la chiave dell'account di servizio per l'autenticazione e posizionala sul tuo Raspberry Pi.
+- Imposta la variabile d'ambiente per autenticarti con Google Cloud:
+
+```
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
+```
+Esegui lo Script di Pubblicazione: Usa lo script Python fornito per iniziare a pubblicare numeri casuali su Pub/Sub:
+
+```
+    python publisher.py
+```
+### Configurazione di Google Cloud Functions
+Crea la Cloud Function:
+- Distribuisci una Google Cloud Function che funge da sottoscrittore Pub/Sub ed espone un'API REST.
+- Il codice della funzione dovrebbe essere simile all'esempio fornito nel file main.py in questo repository.
+Distribuisci la Funzione:
+```
+
+gcloud functions deploy getRandomNumber \
+--runtime python310 \
+--trigger-http \
+--allow-unauthenticated \
+--set-env-vars GOOGLE_CLOUD_PROJECT=your-project-id
+```
+Testa l'API:
+
+    Dopo aver distribuito la funzione, riceverai un URL per l'API REST. Puoi usare strumenti come curl o Postman per effettuare richieste e ricevere numeri casuali.
+
+Esempio:
+
+```
+    curl https://REGION-PROJECT_ID.cloudfunctions.net/getRandomNumber
+```
+## Contributi
+
+Accogliamo con piacere contributi per migliorare questo progetto. Se hai suggerimenti o trovi problemi, invia una pull request o apri un issue.
+Licenza
+
+Questo progetto è concesso sotto licenza MIT. Consulta il file LICENSE per i dettagli.
