@@ -3,9 +3,10 @@ import logging
 from google.cloud import pubsub_v1
 import time
 
+#export GOOGLE_APPLICATION_CREDENTIALS="/home/francesco/QRNG/integrazione-pgrn-eb3b7745424c.json"
 # Configurazione del publisher
-project_id = "strange-mind-312015"
-topic_id = "QGRN"
+project_id = "integrazione-pgrn"
+topic_id = "PGRN"
 
 publisher = pubsub_v1.PublisherClient()
 topic_path = publisher.topic_path(project_id, topic_id)
