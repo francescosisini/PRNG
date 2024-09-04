@@ -1,9 +1,4 @@
-import os
 from google.cloud import pubsub_v1
-
-# Imposta il percorso al file delle credenziali JSON
-#credentials_path = "PATH_TO_KEY.json"
-#os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
 # Configurazione del timeout (opzionale, puoi rimuoverlo se non è necessario)
 timeout = 5.0
