@@ -1,106 +1,147 @@
-# PRNG - Integrazione con Generatore di Numeri Casuali Quantistico
-## Panoramica
+# PRNG (Physical Random Number Generator) Service
 
-Questo progetto dimostra l'integrazione di un Generatore di Numeri Casuali Fisico (Physics) (PRNG) con Google Cloud per creare un servizio consumabile che fornisce numeri casuali tramite un'API REST. Il sistema è costruito utilizzando un Raspberry Pi, che interagisce con il dispositivo QRNG, e i servizi Google Cloud, inclusi Pub/Sub e Cloud Functions.
-## Architettura
-### Componenti
-- Dispositivo PRNG: Un Generatore di Numeri Casuali Fisico collegato a un Raspberry Pi, che genera numeri casuali veri basati su processi quantistici.
-- Raspberry Pi: Il Raspberry Pi è responsabile della lettura dei numeri casuali generati dal PRNG e della loro pubblicazione su un topic Google Cloud Pub/Sub.
-- Google Cloud Pub/Sub: Pub/Sub viene utilizzato come servizio di messaggistica che disaccoppia la generazione dei numeri casuali dal loro consumo. I numeri casuali vengono pubblicati su un topic specifico e possono essere consumati da qualsiasi sottoscrittore.
-- Google Cloud Functions: Una Cloud Function espone un'API REST che i clienti possono chiamare per ricevere numeri casuali. La Cloud Function agisce come un sottoscrittore Pub/Sub, recuperando i numeri casuali dalla sottoscrizione e restituendoli al cliente tramite una risposta HTTP.
+Questo progetto fornisce un servizio per la generazione e il consumo di numeri casuali generati tramite un Physical Random Number Generator (PRNG). I dati vengono gestiti tramite Google Cloud Pub/Sub, dove i client possono pubblicare e consumare numeri casuali direttamente attraverso script Python.
 
-## Workflow
+## Struttura del Progetto
 
-  ### Generazione dei Numeri:
-- Il QRNG genera numeri casuali, che vengono poi letti dal Raspberry Pi.
-- Il Raspberry Pi esegue uno script Python che legge continuamente i numeri casuali dal dispositivo PRNG e li pubblica su un topic Google Cloud Pub/Sub.
-- Pubblicazione dei Messaggi:
-        Lo script Python sul Raspberry Pi pubblica ogni numero casuale come un messaggio sul topic Pub/Sub.
-- Gestione delle Richieste API:
-        Un cliente invia una richiesta HTTP GET all'endpoint API REST esposto da Google Cloud Functions.
-        La Cloud Function si sottoscrive al topic Pub/Sub, recupera un numero casuale dalla sottoscrizione e lo restituisce nella risposta HTTP al cliente.
+Il progetto è composto da due funzioni principali:
+
+1) Pubblicazione dei numeri casuali su Pub/Sub
+2) Consumo dei numeri casuali da Pub/Sub
+
+## Prerequisiti
+
+Prima di procedere, assicurati di avere i seguenti strumenti installati:
+
+* Python 3.7 o superiore
+* Google Cloud SDK (gcloud)
+* Un progetto Google Cloud attivo
+* Autenticazione configurata per accedere ai servizi Google Cloud tramite l'SDK:
+* Autenticati con gcloud auth login
+* Imposta il progetto predefinito: gcloud config set project [YOUR_PROJECT_ID]
+
+Inoltre, assicurati di aver creato un topic Pub/Sub e una subscription per la gestione dei messaggi:
+
 ```
-  
-+-------------+            +-----------------+          +----------------+                       +---------------------+
-|  Dispositivo|  --> USB --> | Raspberry Pi   |  --> Pub/Sub Topic  -->  | Cloud Function |  -->  Richiesta del Cliente |
-|     PRNG    |            +-----------------+          +----------------+                        +---------------------+
-                                                             |
-                                                             |
-                                                     +-----------------+
-                                                     | Pub/Sub Sottosc. |
-                                                     +-----------------+
+
+gcloud pubsub topics create [YOUR_TOPIC]
+gcloud pubsub subscriptions create [YOUR_SUBSCRIPTION] --topic=[YOUR_TOPIC]
 ```
 ## Installazione
-Configurazione di Python su Ubuntu
 
-Se stai configurando il Raspberry Pi o un altro sistema Ubuntu, segui questi passaggi per installare Python e le dipendenze necessarie:
-
-    Aggiorna la lista dei pacchetti:
-```
-sudo apt update
-```
-Installa Python 3:
+    Clona il repository nel tuo ambiente locale:
 
 ```
-sudo apt install python3
+git clone https://github.com/[USERNAME]/PRNG.git
+cd PRNG
 ```
-Installa pip:
-```
-
-sudo apt install python3-pip
-```
-Verifica l'installazione:
-```
-
-python3 --version
-pip3 --version
-```
-Installa le dipendenze necessarie:
-```
-
-    pip3 install google-cloud-pubsub
-```
-## Configurazione del Raspberry Pi
-Installazione delle Dipendenze: Installa le librerie Python necessarie sul tuo Raspberry Pi (già spiegato nella sezione precedente).
-### Configurazione di Google Cloud:
-- Assicurati di avere un progetto Google Cloud configurato.
-- Crea un topic Pub/Sub e una corrispondente sottoscrizione nella Console Google Cloud.
-- Scarica la chiave dell'account di servizio per l'autenticazione e posizionala sul tuo Raspberry Pi.
-- Imposta la variabile d'ambiente per autenticarti con Google Cloud:
+Installa le dipendenze del progetto:
 
 ```
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
-```
-Esegui lo Script di Pubblicazione: Usa lo script Python fornito per iniziare a pubblicare numeri casuali su Pub/Sub:
+pip install -r requirements.txt
+``` 
+Imposta le credenziali per l'accesso a Google Cloud Pub/Sub:
+
+Assicurati di avere un file di credenziali JSON per l'account di servizio. Imposta la variabile d'ambiente GOOGLE_APPLICATION_CREDENTIALS con il percorso al file di credenziali:
 
 ```
-    python publisher.py
-```
-### Configurazione di Google Cloud Functions
-Crea la Cloud Function:
-- Distribuisci una Google Cloud Function che funge da sottoscrittore Pub/Sub ed espone un'API REST.
-- Il codice della funzione dovrebbe essere simile all'esempio fornito nel file main.py in questo repository.
-Distribuisci la Funzione:
-```
 
-gcloud functions deploy getRandomNumber \
---runtime python310 \
---trigger-http \
---allow-unauthenticated \
---set-env-vars GOOGLE_CLOUD_PROJECT=your-project-id
+    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/credentials.json"
 ```
-Testa l'API:
+Pubblicazione dei Numeri Casuali
 
-    Dopo aver distribuito la funzione, riceverai un URL per l'API REST. Puoi usare strumenti come curl o Postman per effettuare richieste e ricevere numeri casuali.
+Lo script prng_publisher.py pubblica numeri casuali generati fisicamente sul topic di Pub/Sub.
 
-Esempio:
+Ecco un esempio di utilizzo:
 
 ```
-    curl https://REGION-PROJECT_ID.cloudfunctions.net/getRandomNumber
+
+python prng_publisher.py
+```
+Codice di esempio per la pubblicazione:
+```
+
+
+import random
+from google.cloud import pubsub_v1
+
+project_id = "YOUR_PROJECT_ID"
+topic_id = "YOUR_TOPIC_ID"
+
+publisher = pubsub_v1.PublisherClient()
+topic_path = publisher.topic_path(project_id, topic_id)
+
+def publish_random_number():
+    random_number = str(random.randint(0, 100))  # Simulazione di un numero casuale fisicamente generato
+    future = publisher.publish(topic_path, random_number.encode("utf-8"))
+    print(f"Numero pubblicato: {random_number}")
+    future.result()  # Attende fino a quando il messaggio viene pubblicato
+
+if __name__ == "__main__":
+    publish_random_number()
+```
+Risultato:
+
+Il numero casuale generato verrà pubblicato sul topic specificato.
+Consumo dei Numeri Casuali
+
+Lo script prng_consumer.py consuma i messaggi dalla subscription di Pub/Sub.
+
+Ecco come eseguirlo:
+
+```
+
+python prng_consumer.py
+```
+Codice di esempio per il consumo:
+```
+
+
+from google.cloud import pubsub_v1
+
+project_id = "YOUR_PROJECT_ID"
+subscription_id = "YOUR_SUBSCRIPTION_ID"
+
+subscriber = pubsub_v1.SubscriberClient()
+subscription_path = subscriber.subscription_path(project_id, subscription_id)
+
+def callback(message):
+    print(f"Numero ricevuto: {message.data.decode('utf-8')}")
+    message.ack()
+
+def consume_numbers():
+    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+    print("In ascolto dei numeri casuali...")
+
+    try:
+        streaming_pull_future.result()
+    except KeyboardInterrupt:
+        streaming_pull_future.cancel()
+
+if __name__ == "__main__":
+    consume_numbers()
+```
+Risultato:
+
+I numeri casuali pubblicati vengono consumati e stampati in console.
+Debugging e Log
+
+Puoi monitorare i log delle funzioni e le attività di Pub/Sub tramite i seguenti comandi:
+
+```
+
+gcloud functions logs read --limit=50
+```
+Per vedere i log specifici delle subscription o eventuali errori:
+
+```
+
+gcloud pubsub subscriptions pull [YOUR_SUBSCRIPTION] --limit=5 --auto-ack
 ```
 ## Contributi
 
-Accogliamo con piacere contributi per migliorare questo progetto. Se hai suggerimenti o trovi problemi, invia una pull request o apri un issue.
-Licenza
+Sono benvenuti contributi sotto forma di pull request. Assicurati di seguire le linee guida per i commit.
 
-Questo progetto è concesso sotto licenza MIT. Consulta il file LICENSE per i dettagli.
+## Conclusione
+
+Ora puoi pubblicare e consumare numeri casuali generati fisicamente tramite Google Cloud Pub/Sub usando semplici script Python. Se hai domande o problemi, sentiti libero di aprire una issue nel repository.
