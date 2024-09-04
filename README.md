@@ -1,4 +1,4 @@
-# QRNG - Integrazione con Generatore di Numeri Casuali Quantistico
+# PRNG - Integrazione con Generatore di Numeri Casuali Quantistico
 ## Panoramica
 
 Questo progetto dimostra l'integrazione di un Generatore di Numeri Casuali Fisico (Physics) (PRNG) con Google Cloud per creare un servizio consumabile che fornisce numeri casuali tramite un'API REST. Il sistema è costruito utilizzando un Raspberry Pi, che interagisce con il dispositivo QRNG, e i servizi Google Cloud, inclusi Pub/Sub e Cloud Functions.
